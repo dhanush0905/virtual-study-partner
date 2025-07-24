@@ -43,3 +43,33 @@ app.post('/start-session', async (req, res) => {
     res.status(500).json({ error: "Failed to start session" });
   }
 });
+
+// End a focus session
+app.post('/end-session', async (req, res) => {
+  const { session_id } = req.body;
+
+  if (!session_id) {
+    return res.status(400).json({ error: "session_id is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE focus_sessions
+       SET end_time = NOW(),
+           duration_minutes = EXTRACT(EPOCH FROM (NOW() - start_time)) / 60
+       WHERE id = $1
+       RETURNING *`,
+      [session_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    res.json({ message: "Session ended", session: result.rows[0] });
+  } catch (err) {
+    console.error("Error ending session:", err.message);
+    res.status(500).json({ error: "Failed to end session" });
+  }
+});
+
