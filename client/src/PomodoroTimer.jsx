@@ -1,47 +1,85 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const PomodoroTimer = () => {
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes
+  const [mode, setMode] = useState('pomodoro'); // 'pomodoro' or 'break'
+  const [timeLeft, setTimeLeft] = useState(25 * 60); // in seconds
   const [isRunning, setIsRunning] = useState(false);
+  const timerRef = useRef(null);
 
+  // Helper to format seconds into mm:ss
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    return `${m}:${s}`;
   };
 
+  // Handle switching modes
+  const switchMode = (newMode) => {
+    setIsRunning(false);
+    clearInterval(timerRef.current);
+    setMode(newMode);
+    setTimeLeft(newMode === 'pomodoro' ? 25 * 60 : 5 * 60);
+  };
+
+  // Handle timer logic
   useEffect(() => {
-    let timer;
-    if (isRunning && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
+    if (isRunning) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev === 0) {
+            clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
     }
-    return () => clearInterval(timer);
-  }, [isRunning, timeLeft]);
 
-  const handleStartPause = () => setIsRunning(!isRunning);
-  const handleReset = () => {
-    setTimeLeft(25 * 60);
-    setIsRunning(false);
-  };
+    return () => clearInterval(timerRef.current);
+  }, [isRunning]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
-      <h1 className="text-4xl font-bold mb-6">Pomodoro Timer</h1>
-      <div className="text-7xl font-mono mb-6">{formatTime(timeLeft)}</div>
-      <div className="space-x-4">
+    <div className="flex flex-col items-center justify-center p-6 space-y-4 bg-white rounded-2xl shadow-lg max-w-sm mx-auto">
+      <h2 className="text-2xl font-bold">
+        {mode === 'pomodoro' ? 'Focus Session' : 'Break Time'}
+      </h2>
+      <div className="text-6xl font-mono text-red-600">{formatTime(timeLeft)}</div>
+
+      <div className="flex gap-2">
         <button
-          onClick={handleStartPause}
-          className="px-6 py-2 bg-green-500 hover:bg-green-600 rounded-xl"
+          onClick={() => setIsRunning((prev) => !prev)}
+          className="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600"
         >
           {isRunning ? 'Pause' : 'Start'}
         </button>
         <button
-          onClick={handleReset}
-          className="px-6 py-2 bg-red-500 hover:bg-red-600 rounded-xl"
+          onClick={() => {
+            setIsRunning(false);
+            clearInterval(timerRef.current);
+            setTimeLeft(mode === 'pomodoro' ? 25 * 60 : 5 * 60);
+          }}
+          className="px-4 py-2 bg-gray-400 text-white rounded-xl hover:bg-gray-500"
         >
           Reset
+        </button>
+      </div>
+
+      <div className="flex gap-2 mt-4">
+        <button
+          onClick={() => switchMode('pomodoro')}
+          className={`px-3 py-1 rounded-lg ${
+            mode === 'pomodoro' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+          }`}
+        >
+          Pomodoro
+        </button>
+        <button
+          onClick={() => switchMode('break')}
+          className={`px-3 py-1 rounded-lg ${
+            mode === 'break' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+          }`}
+        >
+          Break
         </button>
       </div>
     </div>
