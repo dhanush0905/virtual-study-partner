@@ -53,4 +53,28 @@ router.post('/end-session', async (req, res) => {
   }
 });
 
+// ✅ Get session history
+router.get('/session-history', async (req, res) => {
+  const userId = req.query.user_id;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'user_id is required' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT id, start_time, end_time, duration_minutes 
+       FROM focus_sessions 
+       WHERE user_id = $1 
+       ORDER BY start_time DESC`,
+      [userId]
+    );
+
+    res.status(200).json({ sessions: result.rows });
+  } catch (err) {
+    console.error('Error fetching session history:', err.message);
+    res.status(500).json({ error: 'Failed to fetch session history' });
+  }
+});
+
 module.exports = router;

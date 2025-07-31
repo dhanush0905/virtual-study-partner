@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PomodoroTimer from './PomodoroTimer';
+import SessionHistory from './components/SessionHistory';
 import './index.css';
 import './App.css';
 
@@ -30,6 +31,7 @@ function App() {
         Virtual Study Partner
       </h1>
       <PomodoroTimer />
+      <SessionHistory />
     </div>
   );
 }
