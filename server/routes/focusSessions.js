@@ -1,25 +1,9 @@
 const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
-const pool = require('./db'); // Make sure this is correctly configured
+const router = express.Router();
+const pool = require('../db');
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Route to test DB
-app.get('/test-db', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT NOW()');
-    res.json({ message: 'Database connected!', time: result.rows[0].now });
-  } catch (err) {
-    console.error("DB ERROR:", err.message);
-    res.status(500).json({ error: 'Database connection failed' });
-  }
-});
-
-// ✅ Start session route
-app.post('/start-session', async (req, res) => {
+// Start session
+router.post('/start-session', async (req, res) => {
   const { user_id } = req.body;
 
   if (!user_id) {
@@ -40,8 +24,8 @@ app.post('/start-session', async (req, res) => {
   }
 });
 
-// ✅ End session route
-app.post('/end-session', async (req, res) => {
+// End session
+router.post('/end-session', async (req, res) => {
   const { session_id } = req.body;
 
   if (!session_id) {
@@ -69,8 +53,4 @@ app.post('/end-session', async (req, res) => {
   }
 });
 
-// ✅ Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+module.exports = router;

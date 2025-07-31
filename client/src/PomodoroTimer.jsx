@@ -2,32 +2,85 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const PomodoroTimer = () => {
   const [mode, setMode] = useState('pomodoro'); // 'pomodoro' or 'break'
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // in seconds
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
   const timerRef = useRef(null);
+  const sessionStarted = useRef(false); // prevent duplicate start-session calls
+  const sessionIdRef = useRef(null); // track the session_id returned by backend
 
-  // Helper to format seconds into mm:ss
   const formatTime = (seconds) => {
     const m = String(Math.floor(seconds / 60)).padStart(2, '0');
     const s = String(seconds % 60).padStart(2, '0');
     return `${m}:${s}`;
   };
 
-  // Handle switching modes
   const switchMode = (newMode) => {
     setIsRunning(false);
     clearInterval(timerRef.current);
     setMode(newMode);
     setTimeLeft(newMode === 'pomodoro' ? 25 * 60 : 5 * 60);
+    sessionStarted.current = false;
+    sessionIdRef.current = null;
   };
 
-  // Handle timer logic
+  const callStartSession = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/start-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: 1 }), // use real user_id if available
+      });
+
+      const data = await response.json();
+      console.log('Started session:', data);
+
+      if (data.session?.id) {
+        sessionIdRef.current = data.session.id;
+      }
+    } catch (err) {
+      console.error('Failed to start session', err);
+    }
+  };
+
+  const callEndSession = async () => {
+    if (!sessionIdRef.current) {
+      console.warn("No session to end.");
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:5000/end-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ session_id: sessionIdRef.current }),
+      });
+
+      const data = await response.json();
+      console.log('Ended session:', data);
+
+      sessionIdRef.current = null;
+    } catch (err) {
+      console.error('Failed to end session', err);
+    }
+  };
+
   useEffect(() => {
     if (isRunning) {
+      if (mode === 'pomodoro' && !sessionStarted.current) {
+        callStartSession();
+        sessionStarted.current = true;
+      }
+
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev === 0) {
             clearInterval(timerRef.current);
+            setIsRunning(false);
+            if (mode === 'pomodoro') callEndSession();
             return 0;
           }
           return prev - 1;
@@ -57,6 +110,8 @@ const PomodoroTimer = () => {
             setIsRunning(false);
             clearInterval(timerRef.current);
             setTimeLeft(mode === 'pomodoro' ? 25 * 60 : 5 * 60);
+            sessionStarted.current = false;
+            sessionIdRef.current = null;
           }}
           className="px-4 py-2 bg-gray-400 text-white rounded-xl hover:bg-gray-500"
         >
