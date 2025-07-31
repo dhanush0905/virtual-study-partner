@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import confetti from 'canvas-confetti';
 
 const PomodoroTimer = () => {
   const [mode, setMode] = useState('pomodoro'); // 'pomodoro' or 'break'
@@ -68,6 +69,12 @@ const PomodoroTimer = () => {
       console.log('Ended session:', data);
 
       sessionIdRef.current = null;
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+
     } catch (err) {
       console.error('Failed to end session', err);
     }
