@@ -7,6 +7,9 @@ const PomodoroTimer = () => {
   const timerRef = useRef(null);
   const sessionStarted = useRef(false); // prevent duplicate start-session calls
   const sessionIdRef = useRef(null); // track the session_id returned by backend
+  const startAudio = useRef(new Audio('/sounds/session-start.mp3'));
+  const endAudio = useRef(new Audio('/sounds/session-end.mp3'));
+
 
   const formatTime = (seconds) => {
     const m = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -25,6 +28,7 @@ const PomodoroTimer = () => {
 
   const callStartSession = async () => {
     try {
+      startAudio.current.play();
       const response = await fetch('http://localhost:5000/start-session', {
         method: 'POST',
         headers: {
@@ -51,6 +55,7 @@ const PomodoroTimer = () => {
     }
 
     try {
+      endAudio.current.play();
       const response = await fetch('http://localhost:5000/end-session', {
         method: 'POST',
         headers: {
@@ -91,12 +96,49 @@ const PomodoroTimer = () => {
     return () => clearInterval(timerRef.current);
   }, [isRunning]);
 
+  const radius = 90;
+  const stroke = 10;
+  const normalizedRadius = radius - stroke * 0.5;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const progress =
+    mode === 'pomodoro'
+    ? 1 - timeLeft / (25 * 60)
+    : 1 - timeLeft / (5 * 60);
+  const strokeDashoffset = circumference * (1 - progress);
+
   return (
-    <div className="flex flex-col items-center justify-center p-6 space-y-4 bg-white rounded-2xl shadow-lg max-w-sm mx-auto">
+    <div className="flex flex-col items-center justify-center p-6 space-y-6 bg-white rounded-2xl shadow-2xl max-w-sm mx-auto border border-gray-200">
       <h2 className="text-2xl font-bold">
         {mode === 'pomodoro' ? 'Focus Session' : 'Break Time'}
       </h2>
-      <div className="text-6xl font-mono text-red-600">{formatTime(timeLeft)}</div>
+      <div className="relative w-[200px] h-[200px]">
+  <svg height="200" width="200">
+    <circle
+      stroke="#e5e7eb"
+      fill="transparent"
+      strokeWidth={stroke}
+      r={normalizedRadius}
+      cx="100"
+      cy="100"
+    />
+    <circle
+      stroke="#ef4444"
+      fill="transparent"
+      strokeWidth={stroke}
+      strokeLinecap="round"
+      strokeDasharray={circumference + ' ' + circumference}
+      strokeDashoffset={strokeDashoffset}
+      r={normalizedRadius}
+      cx="100"
+      cy="100"
+      style={{ transition: 'stroke-dashoffset 1s linear' }}
+    />
+  </svg>
+  <div className="absolute inset-0 flex items-center justify-center text-4xl font-mono text-red-600">
+    {formatTime(timeLeft)}
+  </div>
+</div>
+
 
       <div className="flex gap-2">
         <button
